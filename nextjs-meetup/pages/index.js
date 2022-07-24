@@ -1,35 +1,55 @@
+import Head from "next/head";
+import { Fragment } from "react";
+import { MongoClient } from "mongodb";
 import MeetupList from "../components/meetups/MeetupList";
 
-const DUMMY_MEETUPS = [
-  {
-    id: "m1",
-    title: "A First Meetup",
-    image:
-      "https://cdn5.tropicalsky.co.uk/images/800x600/historic-parliament-building-victoria.jpg",
-    address: "1 Dallas Road",
-  },
-  {
-    id: "m2",
-    title: "A Second Meetup",
-    image:
-      "https://cdn1.tropicalsky.co.uk/images/800x600/craigdarroch-castle-victoria-bc.jpg",
-    address: "5 Dallas Road",
-  },
-];
-
 function HomePage(props) {
-  return <MeetupList meetups={props.meetups}></MeetupList>;
+  return (
+    <Fragment>
+      <Head>
+        <title>Meetups</title>
+        <meta
+          name="description"
+          content="Browse a hige list of highly active react meetups"
+        ></meta>
+      </Head>
+      <MeetupList meetups={props.meetups}></MeetupList>
+    </Fragment>
+  );
 }
 
-export async function getServerSideProps(context) {
-  const req = context.req;
-  const res = context.res;
+// export async function getServerSideProps(context) {
+//   const req = context.req;
+//   const res = context.res;
 
-  //fetch data from API - simulation
+//   //fetch data from API - simulation
+
+//   return {
+//     props: {
+//       meetups: DUMMY_MEETUPS,
+//     },
+//   };
+// }
+
+export async function getStaticProps() {
+  //Fetch Data from API
+  const client = await MongoClient.connect(
+    "mongodb+srv://arindam:m6AIYX6Oe148SkJP@cluster0.egunz.mongodb.net/meetups?retryWrites=true&w=majority"
+  );
+  const db = client.db();
+  const meetupsCollection = db.collection("meetups");
+  const meetups = await meetupsCollection.find().toArray();
+  client.close();
 
   return {
     props: {
-      meetups: DUMMY_MEETUPS,
+      meetups: meetups.map((meetup) => ({
+        title: meetup.title,
+        address: meetup.address,
+        image: meetup.image,
+        id: meetup._id.toString(),
+      })),
+      revalidate: 1,
     },
   };
 }
